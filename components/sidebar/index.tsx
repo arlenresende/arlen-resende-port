@@ -3,8 +3,8 @@ import { ActionLink } from './_components/actionLink'
 import { TechnologiesCard } from './_components/technologiesCard'
 
 interface ArticleCardProps {
-  github: string
-  demo: string
+  github?: string
+  demo?: string
 }
 export default function Sidebar({ github, demo }: ArticleCardProps) {
   return (
@@ -24,17 +24,20 @@ export default function Sidebar({ github, demo }: ArticleCardProps) {
       </div>
 
       <div className="space-y-4 relative z-10">
-        <ActionLink
-          href={github}
-          icon={<Github size={20} />}
-          label="Ver no GitHub"
-        />
-
-        <ActionLink
-          href={demo}
-          icon={<ExternalLink size={20} />}
-          label="Ver Demonstração"
-        />
+        {github && (
+          <ActionLink
+            href={github}
+            icon={<Github size={20} />}
+            label="Ver no GitHub"
+          />
+        )}
+        {demo && (
+          <ActionLink
+            href={demo}
+            icon={<ExternalLink size={20} />}
+            label="Ver Demonstração"
+          />
+        )}
       </div>
 
       <TechnologiesCard technologies={['React', 'TypeScript', 'Next.js']} />

@@ -51,9 +51,7 @@ export function ArticleCard({
             {title}
           </h3>
           <p className="text-sm text-white/70 leading-relaxed">{description}</p>
-          <p className="text-xs text-white/40 pt-2 border-t border-white/10">
-            {date}
-          </p>
+          <p className="text-xs text-white/40 pt-2">{date}</p>
         </div>
       </div>
     </Link>

@@ -1,213 +1,164 @@
-'use client'
-
 import { Button } from '@/components/ui/button'
-
 import { ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { use } from 'react'
 import Sidebar from '@/components/sidebar'
 import Footer from '@/components/footer'
 
-const articles = {
-  'desenvolvimento-mobile': {
-    title: 'Desenvolvimento Mobile',
-    icon: '📱',
-    color: 'blue',
-    content: `
-# Desenvolvimento Mobile Moderno
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { client } from '../lib/contentful'
 
-## Introdução
-
-O desenvolvimento mobile evoluiu drasticamente nos últimos anos. Com o surgimento de frameworks como React Native, Flutter e tecnologias híbridas, criar aplicativos móveis nunca foi tão acessível.
-
-## Principais Tecnologias
-
-### React Native
-- **Vantagens**: Código compartilhado entre iOS e Android
-- **Performance**: Próxima ao nativo
-- **Comunidade**: Ampla e ativa
-
-### Flutter
-- **Linguagem**: Dart
-- **Performance**: Excelente
-- **UI**: Widgets customizáveis
-
-## Melhores Práticas
-
-1. **Otimização de Performance**
-   - Lazy loading de componentes
-   - Gerenciamento eficiente de estado
-   - Otimização de imagens
-
-2. **UX/UI Responsivo**
-   - Design adaptativo
-   - Gestos intuitivos
-   - Feedback visual
-
-3. **Testes**
-   - Testes unitários
-   - Testes de integração
-   - Testes E2E
-
-## Conclusão
-
-O futuro do desenvolvimento mobile está na convergência entre performance nativa e produtividade de desenvolvimento cross-platform.
-    `,
-    github: 'https://github.com/exemplo/mobile-app',
-    demo: 'https://exemplo-mobile.vercel.app',
-  },
-  'design-ui-ux': {
-    title: 'Design UI/UX',
-    icon: '🎨',
-    color: 'green',
-    content: `
-# Design UI/UX: Criando Experiências Memoráveis
-
-## Fundamentos do Design
-
-O design de interface não é apenas sobre fazer algo bonito - é sobre criar experiências que funcionem perfeitamente para o usuário.
-
-## Princípios Fundamentais
-
-### 1. Usabilidade
-- **Clareza**: Interface intuitiva
-- **Consistência**: Padrões visuais
-- **Feedback**: Resposta às ações do usuário
-
-### 2. Hierarquia Visual
-- **Tipografia**: Tamanhos e pesos adequados
-- **Cores**: Paleta harmoniosa
-- **Espaçamento**: Respiração entre elementos
-
-### 3. Acessibilidade
-- **Contraste**: Legibilidade para todos
-- **Navegação**: Acessível via teclado
-- **Semântica**: HTML estruturado
-
-## Processo de Design
-
-1. **Research**: Entender o usuário
-2. **Wireframes**: Estrutura básica
-3. **Protótipos**: Interações
-4. **Testes**: Validação com usuários
-5. **Iteração**: Melhorias contínuas
-
-## Ferramentas Essenciais
-
-- **Figma**: Design colaborativo
-- **Adobe XD**: Prototipagem
-- **Sketch**: Design de interface
-- **InVision**: Testes de usabilidade
-
-## Tendências Atuais
-
-- **Neumorfismo**: Elementos suaves
-- **Dark Mode**: Interfaces escuras
-- **Micro-interações**: Detalhes que encantam
-- **Design System**: Consistência em escala
-    `,
-    github: 'https://github.com/exemplo/design-system',
-    demo: 'https://exemplo-design.vercel.app',
-  },
-  'performance-web': {
-    title: 'Performance Web',
-    icon: '⚡',
-    color: 'purple',
-    content: `
-# Performance Web: Velocidade que Converte
-
-## Por que Performance Importa?
-
-Cada segundo de carregamento pode significar a diferença entre um usuário engajado e um usuário que abandona seu site.
-
-## Métricas Essenciais
-
-### Core Web Vitals
-- **LCP (Largest Contentful Paint)**: < 2.5s
-- **FID (First Input Delay)**: < 100ms
-- **CLS (Cumulative Layout Shift)**: < 0.1
-
-### Outras Métricas
-- **TTFB**: Time to First Byte
-- **FCP**: First Contentful Paint
-- **TTI**: Time to Interactive
-
-## Técnicas de Otimização
-
-### 1. Otimização de Imagens
-\`\`\`javascript
-// Lazy loading nativo
-<img src="image.jpg" loading="lazy" alt="Descrição" />
-
-// WebP com fallback
-<picture>
-  <source srcset="image.webp" type="image/webp">
-  <img src="image.jpg" alt="Descrição">
-</picture>
-\`\`\`
-
-### 2. Code Splitting
-\`\`\`javascript
-// Dynamic imports
-const LazyComponent = lazy(() => import('./LazyComponent'));
-
-// Route-based splitting
-const Home = lazy(() => import('./pages/Home'));
-\`\`\`
-
-### 3. Caching Estratégico
-- **Browser Cache**: Headers apropriados
-- **CDN**: Distribuição global
-- **Service Workers**: Cache offline
-
-## Ferramentas de Análise
-
-- **Lighthouse**: Auditoria completa
-- **WebPageTest**: Análise detalhada
-- **GTmetrix**: Monitoramento contínuo
-- **Chrome DevTools**: Debug em tempo real
-
-## Checklist de Performance
-
-- [ ] Imagens otimizadas
-- [ ] CSS/JS minificados
-- [ ] Gzip/Brotli habilitado
-- [ ] HTTP/2 configurado
-- [ ] Lazy loading implementado
-- [ ] Service Worker ativo
-- [ ] Métricas monitoradas
-    `,
-    github: 'https://github.com/exemplo/performance-web',
-    demo: 'https://exemplo-performance.vercel.app',
-  },
+interface ContentfulArticle {
+  sys: {
+    id: string
+  }
+  fields: {
+    title?: string
+    shortTitle?: string
+    slug?: string
+    date?: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    content?: any
+    categoria?: string
+    github?: string
+    demo?: string
+  }
 }
 
-export default function ArticlePage({
+// Função para buscar artigo por slug
+async function getArticleBySlug(
+  slug: string,
+): Promise<ContentfulArticle | null> {
+  try {
+    const response = await client.getEntries({
+      content_type: 'blogPost',
+      'fields.slug': slug,
+      limit: 1,
+    })
+
+    const articles = response.items as ContentfulArticle[]
+    return articles.length > 0 ? articles[0] : null
+  } catch (error) {
+    console.error('Erro ao buscar artigo:', error)
+    return null
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function processContentfulRichText(content: any): string {
+  if (!content || !content.content) {
+    return '<p>Conteúdo não disponível</p>'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function nodeToHtml(node: any): string {
+    if (node.nodeType === 'text') {
+      return node.value
+    }
+
+    if (node.nodeType === 'paragraph') {
+      return `<p class="mb-4">${node.content?.map(nodeToHtml).join('') || ''}</p>`
+    }
+
+    if (node.nodeType === 'heading-1') {
+      return `<h1 class="text-3xl font-bold mt-8 mb-4 text-gray-900">${node.content?.map(nodeToHtml).join('') || ''}</h1>`
+    }
+
+    if (node.nodeType === 'heading-2') {
+      return `<h2 class="text-2xl font-semibold mt-6 mb-3 text-gray-800">${node.content?.map(nodeToHtml).join('') || ''}</h2>`
+    }
+
+    if (node.nodeType === 'heading-3') {
+      return `<h3 class="text-xl font-medium mt-4 mb-2 text-gray-700">${node.content?.map(nodeToHtml).join('') || ''}</h3>`
+    }
+
+    if (node.nodeType === 'unordered-list') {
+      return `<ul class="mb-4 ml-4">${node.content?.map(nodeToHtml).join('') || ''}</ul>`
+    }
+
+    if (node.nodeType === 'ordered-list') {
+      return `<ol class="mb-4 ml-4 list-decimal">${node.content?.map(nodeToHtml).join('') || ''}</ol>`
+    }
+
+    if (node.nodeType === 'list-item') {
+      return `<li class="mb-1 list-disc">${node.content?.map(nodeToHtml).join('') || ''}</li>`
+    }
+
+    if (node.nodeType === 'blockquote') {
+      return `<blockquote class="border-l-4 border-gray-300 pl-4 mb-4 italic">${node.content?.map(nodeToHtml).join('') || ''}</blockquote>`
+    }
+
+    if (node.nodeType === 'hr') {
+      return '<hr class="my-6 border-gray-300">'
+    }
+
+    if (node.content) {
+      let html = node.content.map(nodeToHtml).join('')
+
+      if (node.marks) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        node.marks.forEach((mark: any) => {
+          if (mark.type === 'bold') {
+            html = `<strong class="font-semibold text-gray-900">${html}</strong>`
+          }
+          if (mark.type === 'italic') {
+            html = `<em class="italic">${html}</em>`
+          }
+          if (mark.type === 'code') {
+            html = `<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono">${html}</code>`
+          }
+        })
+      }
+
+      return html
+    }
+
+    return ''
+  }
+
+  try {
+    return content.content.map(nodeToHtml).join('')
+  } catch (error) {
+    console.error('Erro ao processar Rich Text:', error)
+    return '<p>Erro ao carregar conteúdo</p>'
+  }
+}
+
+export default async function ArticlePage({
   params,
 }: {
   params: Promise<{ slug: string }>
 }) {
-  const { slug } = use(params)
-  const router = useRouter()
-  const article = articles[slug as keyof typeof articles]
+  const { slug } = await params
+  const article = await getArticleBySlug(slug)
 
   if (!article) {
-    return <div>Artigo não encontrado</div>
+    notFound()
   }
+
+  const title = article.fields?.title || 'Sem título'
+  const shortTitle = article.fields?.shortTitle || ''
+  const categoria = article.fields?.categoria || ''
+  const rawContent = article.fields?.content
+  const github = article.fields?.github || ''
+  const demo = article.fields?.demo || ''
+  const date = article.fields?.date || ''
+
+  const processedContent = processContentfulRichText(rawContent)
 
   return (
     <div className="h-screen flex flex-col lg:flex-row">
       <div className="flex-1 lg:flex-[7] bg-white h-screen flex flex-col">
         <div className="flex-shrink-0 p-6 lg:px-12 lg:pt-12 pb-0">
           <div className="flex items-center justify-between mb-8">
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/')}
-              className="flex items-center gap-2 hover:bg-gray-100"
-            >
-              <ArrowLeft size={20} />
-              Voltar
-            </Button>
+            <Link href="/">
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 hover:bg-gray-100"
+              >
+                <ArrowLeft size={20} />
+                Voltar
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -217,51 +168,31 @@ export default function ArticlePage({
               <div className="flex items-center gap-4 mb-8">
                 <div>
                   <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                    {article.title}
+                    {title}
                   </h1>
-                  <p className="text-gray-600">Guia completo e atualizado</p>
+                  {shortTitle && <p className="text-gray-600">{shortTitle}</p>}
+                  <div className="flex items-center gap-4 mt-2">
+                    {categoria && (
+                      <span className="text-xs uppercase text-blue-600 bg-blue-50 px-2 py-1 rounded tracking-widest">
+                        {categoria}
+                      </span>
+                    )}
+                    {date && (
+                      <p className="text-sm text-gray-500">
+                        {new Date(date).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
               <div
-                className="text-gray-800 leading-relaxed"
-                dangerouslySetInnerHTML={{
-                  __html: article.content
-                    .replace(
-                      /^# (.*$)/gm,
-                      '<h1 class="text-3xl font-bold mt-8 mb-4 text-gray-900">$1</h1>',
-                    )
-                    .replace(
-                      /^## (.*$)/gm,
-                      '<h2 class="text-2xl font-semibold mt-6 mb-3 text-gray-800">$2</h2>',
-                    )
-                    .replace(
-                      /^### (.*$)/gm,
-                      '<h3 class="text-xl font-medium mt-4 mb-2 text-gray-700">$3</h3>',
-                    )
-                    .replace(
-                      /^\*\*(.*?)\*\*/gm,
-                      '<strong class="font-semibold text-gray-900">$1</strong>',
-                    )
-                    .replace(/^- (.*$)/gm, '<li class="ml-4 mb-1">$1</li>')
-                    .replace(
-                      /^(\d+)\. (.*$)/gm,
-                      '<li class="ml-4 mb-1">$2</li>',
-                    )
-                    .replace(
-                      /```javascript\n([\s\S]*?)\n```/g,
-                      '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-4"><code class="text-sm">$1</code></pre>',
-                    )
-                    .replace(
-                      /`([^`]+)`/g,
-                      '<code class="bg-gray-100 px-2 py-1 rounded text-sm">$1</code>',
-                    )
-                    .replace(/\n\n/g, '</p><p class="mb-4">')
-                    .replace(
-                      /^(?!<[h|l|p|c])(.*$)/gm,
-                      '<p class="mb-4">$1</p>',
-                    ),
-                }}
+                className="text-gray-800 leading-relaxed prose-headings:text-gray-900 prose-strong:text-gray-900"
+                dangerouslySetInnerHTML={{ __html: processedContent }}
               />
             </article>
           </div>
@@ -270,8 +201,27 @@ export default function ArticlePage({
       </div>
 
       <div className="flex-1 lg:flex-[3] bg-black flex flex-col justify-center items-center p-6 lg:p-8 relative">
-        <Sidebar github={article.github} demo={article.demo} />
+        <Sidebar github={github || undefined} demo={demo || undefined} />
       </div>
     </div>
   )
+}
+
+export async function generateStaticParams() {
+  try {
+    const response = await client.getEntries({
+      content_type: 'blogPost',
+    })
+
+    const articles = response.items as ContentfulArticle[]
+
+    return articles
+      .map((article) => ({
+        slug: String(article.fields?.slug || ''),
+      }))
+      .filter(({ slug }) => slug)
+  } catch (error) {
+    console.error('Erro ao gerar params estáticos:', error)
+    return []
+  }
 }
